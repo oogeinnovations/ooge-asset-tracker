@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="OOGE Asset Tracker — Track, manage, and barcode-label all business assets">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<title>OOGE Asset Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a1628; --bg2: #0f1d32; --bg3: #142642;
+    --card: #132038; --card-hover: #17294a;
+    --border: #1c3050; --border-input: #1e3558;
+    --text: #e8edf5; --text2: #8a9bb8; --text3: #4a6080;
+    --blue: #3b82f6; --blue2: #2563eb; --cyan: #06b6d4;
+    --green: #10b981; --yellow: #f59e0b; --red: #ef4444;
+    --purple: #8b5cf6; --orange: #f97316;
+    --font: 'Outfit', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --nav-h: 64px;
+    --bottom-h: 72px;
+  }
+
+  html, body { 
+    background: var(--bg); color: var(--text); font-family: var(--font);
+    min-height: 100vh; min-height: 100dvh; overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 0; background: transparent; }
+
+  /* === SPLASH SCREEN === */
+  #splash {
+    position: fixed; inset: 0; z-index: 9999; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.5s, visibility 0.5s;
+  }
+  #splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+  #splash .logo { font-family: var(--font); font-weight: 800; font-size: 36px; letter-spacing: 6px; color: #fff; }
+  #splash .sub { font-size: 13px; color: var(--blue); letter-spacing: 4px; margin-top: 6px; font-weight: 500; }
+  #splash .loader { width: 40px; height: 3px; background: var(--border); border-radius: 2px; margin-top: 28px; overflow: hidden; }
+  #splash .loader-bar { width: 50%; height: 100%; background: var(--blue); border-radius: 2px; animation: loadSlide 1s ease infinite; }
+  @keyframes loadSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+
+  /* === TOP NAV BAR === */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: var(--nav-h); padding-top: var(--safe-top);
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding-left: 18px; padding-right: 18px;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; }
+  .topbar-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .topbar-title { font-weight: 700; font-size: 16px; letter-spacing: 1px; font-family: var(--mono); }
+  .topbar-sub { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .sync-badge {
+    display: flex; align-items: center; gap: 5px; font-size: 10px;
+    font-family: var(--mono); color: var(--text3); padding: 4px 10px;
+    border-radius: 20px; background: var(--bg2);
+  }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg2); color: var(--text2); display: flex; align-items: center;
+    justify-content: center; font-size: 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .icon-btn:active { transform: scale(0.92); background: var(--card); }
+
+  /* === BOTTOM NAV === */
+  .bottomnav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    height: var(--bottom-h); padding-bottom: var(--safe-bottom);
+    background: var(--bg); border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-around;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: 10px; color: var(--text3); cursor: pointer; padding: 8px 16px;
+    border-radius: 12px; transition: all 0.2s; border: none; background: none;
+    font-family: var(--font); font-weight: 500;
+  }
+  .nav-item.active { color: var(--blue); }
+  .nav-item .nav-icon { font-size: 22px; }
+  .nav-item:active { transform: scale(0.92); }
+
+  /* FAB */
+  .fab {
+    position: fixed; right: 18px; z-index: 90;
+    bottom: calc(var(--bottom-h) + 18px + var(--safe-bottom));
+    width: 56px; height: 56px; border-radius: 16px; border: none;
+    background: linear-gradient(135deg, var(--blue), var(--blue2));
+    color: #fff; font-size: 28px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.4);
+    transition: all 0.2s;
+  }
+  .fab:active { transform: scale(0.9); }
+
+  /* === MAIN SCROLLABLE AREA === */
+  .main {
+    padding-top: calc(var(--nav-h) + var(--safe-top) + 12px);
+    padding-bottom: calc(var(--bottom-h) + var(--safe-bottom) + 80px);
+    padding-left: 16px; padding-right: 16px;
+    min-height: 100vh; min-height: 100dvh;
+  }
+
+  /* === SETUP SCREEN === */
+  .setup-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; min-height: 100dvh; padding: 24px;
+  }
+  .setup-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+    padding: 32px 24px; max-width: 440px; width: 100%; text-align: center;
+  }
+  .setup-box h1 { font-family: var(--mono); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .setup-box .desc { color: var(--text2); font-size: 13px; margin-bottom: 24px; }
+  .setup-steps {
+    text-align: left; background: var(--bg); border-radius: 12px; padding: 18px;
+    margin-bottom: 20px; font-size: 12px; color: var(--text2); line-height: 1.9;
+  }
+  .setup-steps b { color: var(--text); }
+  .setup-steps code { background: var(--bg2); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 11px; color: var(--blue); }
+
+  /* === INPUTS === */
+  input, select, textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border-input);
+    color: var(--text); padding: 12px 14px; border-radius: 10px;
+    font-family: var(--font); font-size: 15px; outline: none;
+    transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+  select { cursor: pointer; }
+  textarea { resize: vertical; min-height: 70px; }
+  .field { margin-bottom: 14px; }
+  .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.3px; }
+
+  /* === BUTTONS === */
+  .btn {
+    padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: var(--font); border: none; transition: all 0.2s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: linear-gradient(135deg, var(--blue), var(--blue2)); color: #fff; width: 100%; }
+  .btn-secondary { background: var(--bg2); border: 1px solid var(--border); color: var(--text2); }
+  .btn-danger { background: #2a1520; border: 1px solid #4a2030; color: var(--red); }
+  .btn-sm { padding: 8px 14px; font-size: 12px; border-radius: 8px; }
+
+  /* === STAT CARDS === */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; position: relative; overflow: hidden;
+  }
+  .stat-card::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .stat-card.blue::after { background: var(--blue); }
+  .stat-card.green::after { background: var(--green); }
+  .stat-card.yellow::after { background: var(--yellow); }
+  .stat-card.full { grid-column: 1 / -1; }
+  .stat-label { font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 700; font-family: var(--mono); }
+  .stat-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* === CATEGORY CARDS === */
+  .section-title {
+    font-size: 12px; font-weight: 600; font-family: var(--mono);
+    color: var(--text3); margin: 20px 0 12px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .cat-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+  .cat-card {
+    min-width: 140px; flex-shrink: 0; border-radius: 14px; padding: 16px;
+    cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+    scroll-snap-align: start;
+  }
+  .cat-card:active { transform: scale(0.96); }
+  .cat-icon { font-size: 24px; margin-bottom: 8px; }
+  .cat-count { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+  .cat-label { font-weight: 600; font-size: 12px; margin-top: 4px; }
+  .cat-val { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+  /* === ASSET LIST CARDS === */
+  .search-bar { position: relative; margin-bottom: 12px; }
+  .search-bar input { padding-left: 40px; }
+  .search-bar .si { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; opacity: 0.35; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .filter-chip {
+    flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: var(--bg2); color: var(--text2);
+    transition: all 0.2s; white-space: nowrap; font-family: var(--font);
+  }
+  .filter-chip.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .filter-chip:active { transform: scale(0.95); }
+  .result-count { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 12px; }
+
+  .asset-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 10px; transition: all 0.2s;
+    animation: cardIn 0.3s ease;
+  }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .asset-card:active { background: var(--card-hover); }
+  .ac-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .ac-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .ac-emoji { font-size: 28px; flex-shrink: 0; }
+  .ac-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ac-id { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+  .ac-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 500; white-space: nowrap; flex-shrink: 0;
+  }
+  .ac-details { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .ac-detail { font-size: 12px; color: var(--text2); }
+  .ac-detail b { color: var(--text); font-weight: 600; }
+  .ac-barcode { background: #fff; border-radius: 8px; padding: 8px; text-align: center; margin-bottom: 10px; }
+  .ac-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* === FORM PANEL (full screen on mobile) === */
+  .form-overlay {
+    position: fixed; inset: 0; z-index: 200; background: var(--bg);
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    animation: slideUp 0.3s ease;
+    padding: 0 16px calc(var(--safe-bottom) + 20px);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .form-header {
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;
+  }
+  .form-header h2 { font-size: 18px; font-weight: 700; }
+  .form-close { background: none; border: none; color: var(--text2); font-size: 24px; cursor: pointer; padding: 8px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-full { grid-column: 1 / -1; }
+  .form-submit { margin-top: 20px; }
+
+  /* === LABEL MODAL === */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.75);
+    display: flex; align-items: flex-end; justify-content: center;
+    animation: fadeIn 0.2s ease;
+    padding-bottom: var(--safe-bottom);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-sheet {
+    background: #fff; border-radius: 20px 20px 0 0; padding: 28px 24px;
+    width: 100%; max-width: 480px; color: #1a1a2e; text-align: center;
+    animation: sheetUp 0.3s ease;
+  }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-family: var(--mono); font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: #888; margin-bottom: 16px; }
+  .label-box { border: 2px dashed #ddd; border-radius: 14px; padding: 20px; background: #fafafa; }
+  .label-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .label-meta { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .label-loc { font-size: 11px; color: #aaa; margin-bottom: 8px; }
+  .label-barcode { display: flex; justify-content: center; margin: 10px 0; }
+  .label-footer { display: flex; justify-content: space-between; font-size: 10px; color: #999; font-family: var(--mono); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-actions button { flex: 1; }
+  .mbtn { padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: var(--font); }
+  .mbtn:active { transform: scale(0.96); }
+  .mbtn-light { background: #f0f0f0; color: #333; }
+  .mbtn-dark { background: #1a1a2e; color: #fff; }
+
+  /* === TOASTS === */
+  .toast-box { position: fixed; top: calc(var(--nav-h) + var(--safe-top) + 8px); left: 16px; right: 16px; z-index: 400; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  .toast {
+    padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4); pointer-events: auto;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  .toast-success { background: #065f46; color: #a7f3d0; border: 1px solid var(--green); }
+  .toast-error { background: #7f1d1d; color: #fca5a5; border: 1px solid var(--red); }
+  .toast-info { background: #1e3a5f; color: #93c5fd; border: 1px solid var(--blue); }
+
+  /* === EMPTY STATE === */
+  .empty { text-align: center; padding: 48px 20px; }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; color: var(--text3); }
+
+  /* Settings */
+  .settings-item {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .settings-item .si-left { display: flex; align-items: center; gap: 12px; }
+  .settings-item .si-icon { font-size: 22px; }
+  .settings-item .si-label { font-weight: 600; font-size: 14px; }
+  .settings-item .si-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  @media (min-width: 768px) {
+    .main { max-width: 600px; margin: 0 auto; }
+    .stats-row { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media print {
+    .topbar, .bottomnav, .fab, .toast-box, .no-print { display: none !important; }
+    body { background: #fff; color: #000; }
+    .main { padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="logo">OOGE</div>
+  <div class="sub">ASSET TRACKER</div>
+  <div class="loader"><div class="loader-bar"></div></div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen" class="setup-screen" style="display:none;">
+  <div class="setup-box">
+    <div style="font-size:48px; margin-bottom:14px;">📦</div>
+    <h1>OOGE Asset Tracker</h1>
+    <p class="desc">Connect to your Google Sheet to start tracking</p>
+    <div class="setup-steps">
+      <b>Quick Setup (one-time):</b><br><br>
+      1. Open your Google Sheet<br>
+      2. <b>Extensions</b> → <b>Apps Script</b><br>
+      3. Paste the backend code<br>
+      4. Run <code>setupSheet</code> once<br>
+      5. <b>Deploy</b> → <b>New deployment</b> → <b>Web app</b><br>
+      6. Set access to <b>"Anyone"</b><br>
+      7. Copy the URL and paste below
+    </div>
+    <div class="field">
+      <label class="field-label">Web App URL</label>
+      <input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <button class="btn btn-primary" onclick="saveSetup()">Connect & Launch</button>
+    <p style="margin-top:14px; font-size:11px; color:var(--text3);">Saved on this device. One-time setup.</p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-icon">📦</div>
+      <div>
+        <div class="topbar-title">OOGE</div>
+        <div class="topbar-sub" id="h-count">0 assets</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="sync-badge">
+        <div class="sync-dot" id="sync-dot" style="background:var(--green);"></div>
+        <span id="sync-text">Synced</span>
+      </div>
+      <button class="icon-btn" onclick="syncFromSheet()" title="Refresh">🔄</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="page-dashboard"></div>
+    <div id="page-assets" style="display:none;"></div>
+    <div id="page-settings" style="display:none;"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottomnav">
+    <button class="nav-item active" id="bnav-dashboard" onclick="goPage('dashboard')">
+      <span class="nav-icon">📊</span>Dashboard
+    </button>
+    <button class="nav-item" id="bnav-assets" onclick="goPage('assets')">
+      <span class="nav-icon">📋</span>Assets
+    </button>
+    <button class="nav-item" id="bnav-settings" onclick="goPage('settings')">
+      <span class="nav-icon">⚙️</span>Settings
+    </button>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openForm()" id="fab-add">+</button>
+</div>
+
+<!-- FORM OVERLAY -->
+<div id="form-overlay" style="display:none;"></div>
+
+<!-- MODAL -->
+<div id="modal-container"></div>
+
+<!-- TOASTS -->
+<div class="toast-box" id="toast-box"></div>
+
+<script>
+// ==============================================================
+//  STATE
+// ==============================================================
+let APP_URL = "";
+let assets = [];
+let currentPage = "dashboard";
+let filterCat = "all";
+let searchQ = "";
+
+const CATS = [
+  { id:"it", label:"IT & Computing", icon:"💻", color:"#3b82f6", bg:"#142a4a" },
+  { id:"electrical", label:"Electrical", icon:"⚡", color:"#f59e0b", bg:"#3a2810" },
+  { id:"fire_safety", label:"Fire & Safety", icon:"🧯", color:"#ef4444", bg:"#3a1018" },
+  { id:"furniture", label:"Furniture", icon:"🪑", color:"#8b5cf6", bg:"#241a3a" },
+  { id:"production", label:"Production Floor", icon:"🏭", color:"#06b6d4", bg:"#0a2a32" },
+  { id:"lab", label:"Lab & Scientific", icon:"🔬", color:"#10b981", bg:"#0a2a1e" },
+  { id:"pantry", label:"Pantry", icon:"☕", color:"#f97316", bg:"#3a2010" },
+];
+const PREFIX = { it:"IT", electrical:"EL", fire_safety:"FS", furniture:"FU", production:"PF", lab:"LS", pantry:"PT" };
+const gc = (id) => CATS.find(c=>c.id===id) || CATS[0];
+const genId = (cat) => (PREFIX[cat]||"XX") + "-" + String(Date.now()).slice(-6) + String(Math.floor(Math.random()*100)).padStart(2,"0");
+const esc = (s) => { const d=document.createElement("div"); d.textContent=s||""; return d.innerHTML; };
+const fmt = (n) => (n||0).toLocaleString("en-IN");
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}) : "—";
+
+// ==============================================================
+//  CODE 128 BARCODE
+// ==============================================================
+const C128 = [
+  "11011001100","11001101100","11001100110","10010011000","10010001100",
+  "10001001100","10011001000","10011000100","10001100100","11001001000",
+  "11001000100","11000100100","10110011100","10011011100","10011001110",
+  "10111001100","10011101100","10011100110","11001110010","11001011100",
+  "11001001110","11011100100","11001110100","11100101100","11100100110",
+  "11101100100","11100110100","11100110010","11011011000","11011000110",
+  "11000110110","10100011000","10001011000","10001000110","10110001000",
+  "10001101000","10001100010","11010001000","11000101000","11000100010",
+  "10110111000","10110001110","10001101110","10111011000","10111000110",
+  "10001110110","11101110110","11010001110","11000101110","11011101000",
+  "11011100010","11011101110","11101011000","11101000110","11100010110",
+  "11101101000","11101100010","11100011010","11101111010","11001000010",
+  "11110001010","10100110000","10100001100","10010110000","10010000110",
+  "10000101100","10000100110","10110010000","10110000100","10011010000",
+  "10011000010","10000110100","10000110010","11000010010","11001010000",
+  "11110111010","11000010100","10001111010","10100111100","10010111100",
+  "10010011110","10111100100","10011110100","10011110010","11110100100",
+  "11110010100","11110010010","11011011110","11011110110","11110110110",
+  "10101111000","10100011110","10001011110","10111101000","10111100010",
+  "11110101000","11110100010","10111011110","10111101110","11101011110",
+  "11110101110","11010000100","11010010000","11010011100","1100011101011"
+];
+function barcodeEncode(text) {
+  let codes=[104],cs=104;
+  for(let i=0;i<text.length;i++){const c=text.charCodeAt(i)-32;codes.push(c);cs+=c*(i+1);}
+  codes.push(cs%103);codes.push(106);
+  return codes.map(c=>C128[c]).join("");
+}
+function bSVG(val,w,h) {
+  if(!val) return "";
+  const bits=barcodeEncode(val), bw=w/bits.length;
+  let bars="";
+  for(let i=0;i<bits.length;i++) if(bits[i]==="1") bars+=`<rect x="${i*bw}" y="2" width="${bw+.5}" height="${h-14}" fill="#1a1a2e"/>`;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="white"/>${bars}<text x="${w/2}" y="${h-2}" text-anchor="middle" font-size="9" font-family="monospace" fill="#1a1a2e">${val}</text></svg>`;
+}
+
+// ==============================================================
+//  INIT
+// ==============================================================
+function init() {
+  APP_URL = localStorage.getItem("ooge_url") || "";
+  if (APP_URL) {
+    try { const c=localStorage.getItem("ooge_cache"); if(c) assets=JSON.parse(c); } catch(e){}
+    showApp();
+    syncFromSheet();
+  } else {
+    document.getElementById("splash").classList.add("hide");
+    document.getElementById("setup-screen").style.display = "flex";
+  }
+}
+
+function saveSetup() {
+  const url = document.getElementById("setup-url").value.trim();
+  if (!url || !url.startsWith("https://script.google.com")) {
+    toast("Please enter a valid Google Apps Script URL","error"); return;
+  }
+  localStorage.setItem("ooge_url", url);
+  APP_URL = url;
+  document.getElementById("setup-screen").style.display = "none";
+  showApp();
+  syncFromSheet();
+}
+
+function showApp() {
+  document.getElementById("setup-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  render();
+  setTimeout(() => document.getElementById("splash").classList.add("hide"), 600);
+}
+
+function saveCache() { try { localStorage.setItem("ooge_cache", JSON.stringify(assets)); } catch(e){} }
+
+// ==============================================================
+//  GOOGLE SHEET SYNC
+// ==============================================================
+async function syncFromSheet() {
+  setSync("syncing");
+  try {
+    const res = await fetch(APP_URL);
+    const data = await res.json();
+    if (data.success) {
+      assets = data.assets || [];
+      saveCache(); render();
+      setSync("ok");
+      toast("Synced "+assets.length+" assets","success");
+    } else throw new Error(data.error||"Error");
+  } catch(e) {
+    setSync("err");
+    toast("Sync failed: "+e.message,"error");
+  }
+}
+
+async function postSheet(payload) {
+  setSync("syncing");
+  try {
+    const res = await fetch(APP_URL, { method:"POST", headers:{"Content-Type":"text/plain"}, body:JSON.stringify(payload) });
+    const data = await res.json();
+    if (data.success) { setSync("ok"); return true; }
+    else throw new Error(data.error);
+  } catch(e) {
+    setSync("err");
+    toast("Error: "+e.message,"error");
+    return false;
+  }
+}
+
+function setSync(s) {
+  const dot=document.getElementById("sync-dot"), txt=document.getElementById("sync-text");
+  if(s==="ok"){ dot.style.background="var(--green)"; txt.textContent="Synced"; dot.style.animation="none"; }
+  else if(s==="syncing"){ dot.style.background="var(--yellow)"; txt.textContent="Syncing"; dot.style.animation="pulse 1s infinite"; }
+  else{ dot.style.background="var(--red)"; txt.textContent="Error"; dot.style.animation="none"; }
+}
+
+// ==============================================================
+//  CRUD
+// ==============================================================
+async function addAsset(fd) {
+  const id = genId(fd.category);
+  const asset = { id, name:fd.name, category:fd.category, purchaseDate:fd.purchaseDate, billNumber:fd.billNumber,
+    price:parseFloat(fd.price), location:fd.location||"", condition:fd.condition||"good", notes:fd.notes||"",
+    barcode:id, createdAt:new Date().toISOString() };
+  assets.push(asset); saveCache(); render(); closeForm();
+  toast("Asset registered: "+asset.name,"success");
+  await postSheet({ action:"add", asset });
+}
+
+async function updateAsset(editId, fd) {
+  const idx = assets.findIndex(a=>a.id===editId);
+  if(idx===-1) return;
+  assets[idx] = { ...assets[idx], name:fd.name, category:fd.category, purchaseDate:fd.purchaseDate,
+    billNumber:fd.billNumber, price:parseFloat(fd.price), location:fd.location||"",
+    condition:fd.condition||"good", notes:fd.notes||"" };
+  saveCache(); render(); closeForm();
+  toast("Updated: "+fd.name,"success");
+  await postSheet({ action:"update", asset:assets[idx] });
+}
+
+async function deleteAsset(id) {
+  const a = assets.find(x=>x.id===id);
+  if(!confirm("Delete: "+(a?.name||id)+"?")) return;
+  assets = assets.filter(x=>x.id!==id);
+  saveCache(); render();
+  toast("Deleted","info");
+  await postSheet({ action:"delete", id });
+}
+
+// ==============================================================
+//  NAVIGATION
+// ==============================================================
+function goPage(page) {
+  currentPage = page;
+  ["dashboard","assets","settings"].forEach(p => {
+    document.getElementById("page-"+p).style.display = p===page ? "block" : "none";
+    document.getElementById("bnav-"+p).className = "nav-item" + (p===page?" active":"");
+  });
+  document.getElementById("fab-add").style.display = (page==="settings") ? "none" : "flex";
+  render();
+}
+
+// ==============================================================
+//  RENDER
+// ==============================================================
+function render() {
+  document.getElementById("h-count").textContent = assets.length+" assets";
+  if(currentPage==="dashboard") renderDashboard();
+  else if(currentPage==="assets") renderAssets();
+  else renderSettings();
+}
+
+function renderDashboard() {
+  const total = assets.reduce((s,a)=>s+(a.price||0),0);
+  const catStats = CATS.map(c=>({ ...c, count:assets.filter(a=>a.category===c.id).length, value:assets.filter(a=>a.category===c.id).reduce((s,a)=>s+(a.price||0),0) }));
+
+  let html = `
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <div class="stat-label">Total Assets</div>
+        <div class="stat-value" style="color:var(--blue);">${assets.length}</div>
+        <div class="stat-sub">all categories</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Total Value</div>
+        <div class="stat-value" style="color:var(--green); font-size:${total>9999999?16:20}px;">₹${fmt(total)}</div>
+        <div class="stat-sub">purchase value</div>
+      </div>
+    </div>
+
+    <div class="section-title">Categories</div>
+    <div class="cat-scroll">
+      ${catStats.map(c=>`
+        <div class="cat-card" style="background:${c.bg};border-color:${c.color}22;" onclick="filterCat='${c.id}';goPage('assets');">
+          <div class="cat-icon">${c.icon}</div>
+          <div class="cat-count" style="color:${c.color};">${c.count}</div>
+          <div class="cat-label">${c.label}</div>
+          <div class="cat-val">₹${fmt(c.value)}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+
+  if (assets.length > 0) {
+    const recent = assets.slice(-5).reverse();
+    html += `<div class="section-title">Recent Assets</div>`;
+    recent.forEach(a => {
+      const cat = gc(a.category);
+      html += `
+        <div class="asset-card" onclick="showLabel('${a.id}')">
+          <div class="ac-top">
+            <div class="ac-left">
+              <span class="ac-emoji">${cat.icon}</span>
+              <div>
+                <div class="ac-name">${esc(a.name)}</div>
+                <div class="ac-id">${a.id}</div>
+              </div>
+            </div>
+            <span class="ac-badge" style="background:${cat.color}18;color:${cat.color};">${cat.label}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:var(--mono);font-weight:600;font-size:14px;">₹${fmt(a.price)}</span>
+            <span style="font-size:12px;color:var(--text3);">${fmtDate(a.purchaseDate)}</span>
+          </div>
+        </div>`;
+    });
+  } else {
+    html += `<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No assets yet</div><div class="empty-sub">Tap + to register your first asset</div></div>`;
+  }
+
+  document.getElementById("page-dashboard").innerHTML = html;
+}
+
+function renderAssets() {
+  const filtered = assets
+    .filter(a=> filterCat==="all" || a.category===filterCat)
+    .filter(a=> {
+      if(!searchQ) return true;
+      const s=searchQ.toLowerCase();
+      return a.name.toLowerCase().includes(s)||a.id.toLowerCase().includes(s)||(a.billNumber||"").toLowerCase().includes(s);
+    })
+    .sort((a,b) => {
+      const da = a.purchaseDate||"", db = b.purchaseDate||"";
+      return da > db ? -1 : da < db ? 1 : 0;
+    });
+
+  let html = `
+    <div class="search-bar">
+      <span class="si">🔍</span>
+      <input type="text" placeholder="Search name, ID, or bill..." value="${esc(searchQ)}" oninput="searchQ=this.value;renderAssets();">
+    </div>
+    <div class="filter-row">
+      <span class="filter-chip ${filterCat==="all"?"active":""}" onclick="filterCat='all';renderAssets();">All</span>
+      ${CATS.map(c=>`<span class="filter-chip ${filterCat===c.id?"active":""}" onclick="filterCat='${c.id}';renderAssets();">${c.icon} ${c.label}</span>`).join("")}
+    </div>
+    <div class="result-count">${filtered.length} asset${filtered.length!==1?"s":""} found</div>
+  `;
+
+  if (filtered.length > 0) {
+    filtered.forEach(a => {
+      const cat = gc(a.category);
+      html += `
+        <div class="asset-card">
+          <div class="ac-top">
+            <div class="ac-left">
+              <span class="ac-emoji">${cat.icon}</span>
+              <div style="min-width:0;">
+                <div class="ac-name">${esc(a.name)}</div>
+                <div class="ac-id">${a.id}</div>
+              </div>
+            </div>
+            <span class="ac-badge" style="background:${cat.color}18;color:${cat.color};">${cat.label}</span>
+          </div>
+          <div class="ac-details">
+            <div class="ac-detail">📅 <b>${fmtDate(a.purchaseDate)}</b></div>
+            <div class="ac-detail">🧾 <b>${esc(a.billNumber)}</b></div>
+            <div class="ac-detail">💰 <b>₹${fmt(a.price)}</b></div>
+            <div class="ac-detail">📍 <b>${esc(a.location||"—")}</b></div>
+          </div>
+          <div class="ac-barcode" onclick="showLabel('${a.id}')">${bSVG(a.barcode||a.id, 260, 56)}</div>
+          <div class="ac-actions">
+            <button class="btn btn-sm btn-secondary" onclick="openForm('${a.id}')">✏️ Edit</button>
+            <button class="btn btn-sm btn-secondary" onclick="showLabel('${a.id}')">🏷️ Label</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteAsset('${a.id}')">🗑️</button>
+          </div>
+        </div>`;
+    });
+  } else {
+    html += `<div class="empty"><div class="empty-icon">${filterCat!=="all"?gc(filterCat).icon:"🔍"}</div><div class="empty-title">No assets found</div><div class="empty-sub">${searchQ?"Try a different search":"Tap + to add one"}</div></div>`;
+  }
+
+  document.getElementById("page-assets").innerHTML = html;
+}
+
+function renderSettings() {
+  let html = `
+    <div class="section-title">Settings</div>
+    <div class="settings-item" onclick="syncFromSheet()">
+      <div class="si-left"><span class="si-icon">🔄</span><div><div class="si-label">Sync Now</div><div class="si-sub">Pull latest data from Google Sheet</div></div></div>
+    </div>
+    <div class="settings-item" onclick="exportCSV()">
+      <div class="si-left"><span class="si-icon">📥</span><div><div class="si-label">Export CSV</div><div class="si-sub">Download all assets as a CSV file</div></div></div>
+    </div>
+    <div class="settings-item" onclick="resetApp()">
+      <div class="si-left"><span class="si-icon">🔌</span><div><div class="si-label">Disconnect</div><div class="si-sub">Remove saved URL and reset app</div></div></div>
+    </div>
+    <div class="section-title" style="margin-top:24px;">About</div>
+    <div class="settings-item">
+      <div class="si-left"><span class="si-icon">📦</span><div><div class="si-label">OOGE Asset Tracker</div><div class="si-sub">Version 1.0 • ${assets.length} assets tracked</div></div></div>
+    </div>
+    <div class="settings-item">
+      <div class="si-left"><span class="si-icon">🏢</span><div><div class="si-label">OOGE Innovations Pvt Ltd</div><div class="si-sub">Business asset management</div></div></div>
+    </div>
+  `;
+  document.getElementById("page-settings").innerHTML = html;
+}
+
+// ==============================================================
+//  FORM
+// ==============================================================
+function openForm(editId) {
+  const a = editId ? assets.find(x=>x.id===editId) : null;
+  const el = document.getElementById("form-overlay");
+  el.style.display = "block";
+  el.innerHTML = `
+    <div class="form-overlay">
+      <div class="form-header">
+        <h2>${a?"Edit Asset":"New Asset"}</h2>
+        <button class="form-close" onclick="closeForm()">✕</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-full field"><label class="field-label">Asset Name *</label><input type="text" id="f-name" placeholder="e.g. Dell Laptop" value="${esc(a?.name||"")}"></div>
+        <div class="field"><label class="field-label">Category *</label>
+          <select id="f-cat">${CATS.map(c=>`<option value="${c.id}" ${(a?.category||"it")===c.id?"selected":""}>${c.icon} ${c.label}</option>`).join("")}</select>
+        </div>
+        <div class="field"><label class="field-label">Condition</label>
+          <select id="f-cond">${["new","good","fair","poor"].map(v=>`<option value="${v}" ${(a?.condition||"good")===v?"selected":""}>${v[0].toUpperCase()+v.slice(1)}</option>`).join("")}</select>
+        </div>
+        <div class="field"><label class="field-label">Purchase Date *</label><input type="date" id="f-date" value="${a?.purchaseDate||""}"></div>
+        <div class="field"><label class="field-label">Bill / Invoice No. *</label><input type="text" id="f-bill" placeholder="INV-2024-001" value="${esc(a?.billNumber||"")}"></div>
+        <div class="field"><label class="field-label">Price (₹) *</label><input type="number" id="f-price" placeholder="65000" value="${a?.price||""}"></div>
+        <div class="field"><label class="field-label">Location / Room</label><input type="text" id="f-loc" placeholder="Server Room B2" value="${esc(a?.location||"")}"></div>
+        <div class="form-full field"><label class="field-label">Notes</label><textarea id="f-notes" placeholder="Additional details...">${esc(a?.notes||"")}</textarea></div>
+      </div>
+      <div class="form-submit">
+        <button class="btn btn-primary" onclick="submitForm(${a?`'${a.id}'`:'null'})">${a?"Update Asset":"Register Asset"}</button>
+      </div>
+      <div style="height:40px;"></div>
+    </div>`;
+}
+
+function closeForm() {
+  document.getElementById("form-overlay").style.display = "none";
+  document.getElementById("form-overlay").innerHTML = "";
+}
+
+function submitForm(editId) {
+  const fd = {
+    name: document.getElementById("f-name").value.trim(),
+    category: document.getElementById("f-cat").value,
+    purchaseDate: document.getElementById("f-date").value,
+    billNumber: document.getElementById("f-bill").value.trim(),
+    price: document.getElementById("f-price").value,
+    location: document.getElementById("f-loc").value.trim(),
+    condition: document.getElementById("f-cond").value,
+    notes: document.getElementById("f-notes").value.trim(),
+  };
+  if(!fd.name||!fd.purchaseDate||!fd.billNumber||!fd.price) {
+    toast("Fill in all required fields *","error"); return;
+  }
+  if(editId) updateAsset(editId, fd);
+  else addAsset(fd);
+}
+
+// ==============================================================
+//  LABEL MODAL
+// ==============================================================
+function showLabel(id) {
+  const a = assets.find(x=>x.id===id);
+  if(!a) return;
+  const cat = gc(a.category);
+  document.getElementById("modal-container").innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal();">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">ASSET LABEL</div>
+        <div class="modal-sub">Print or screenshot this label</div>
+        <div class="label-box">
+          <div class="label-name">${esc(a.name)}</div>
+          <div class="label-meta">${cat.icon} ${cat.label} • ${a.condition||"good"}</div>
+          ${a.location?`<div class="label-loc">📍 ${esc(a.location)}</div>`:""}
+          <div class="label-barcode">${bSVG(a.barcode||a.id, 260, 72)}</div>
+          <div class="label-footer"><span>Bill: ${esc(a.billNumber||"")}</span><span>${fmtDate(a.purchaseDate)}</span></div>
+        </div>
+        <div class="modal-actions">
+          <button class="mbtn mbtn-light" onclick="closeModal()">Close</button>
+          <button class="mbtn mbtn-dark" onclick="window.print()">🖨️ Print</button>
+        </div>
+      </div>
+    </div>`;
+}
+function closeModal() { document.getElementById("modal-container").innerHTML = ""; }
+
+// ==============================================================
+//  UTILITIES
+// ==============================================================
+function toast(msg, type) {
+  const box = document.getElementById("toast-box");
+  const icon = type==="success"?"✅":type==="error"?"❌":"ℹ️";
+  const div = document.createElement("div");
+  div.className = "toast toast-"+type;
+  div.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  box.appendChild(div);
+  setTimeout(()=>{ div.style.opacity="0"; div.style.transition="opacity 0.3s"; setTimeout(()=>div.remove(),300); }, 3000);
+}
+
+function exportCSV() {
+  if(assets.length===0){ toast("No assets to export","info"); return; }
+  let csv = "Asset ID,Name,Category,Purchase Date,Bill Number,Price,Location,Condition,Notes,Barcode\n";
+  assets.forEach(a => {
+    csv += `"${a.id}","${a.name}","${gc(a.category).label}","${a.purchaseDate}","${a.billNumber}","${a.price}","${a.location||""}","${a.condition||""}","${(a.notes||"").replace(/"/g,'""')}","${a.barcode||a.id}"\n`;
+  });
+  const blob = new Blob([csv], { type:"text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = "ooge-assets-"+new Date().toISOString().slice(0,10)+".csv";
+  link.click(); URL.revokeObjectURL(url);
+  toast("CSV downloaded","success");
+}
+
+function resetApp() {
+  if(!confirm("Disconnect from Google Sheet? Your sheet data won't be deleted.")) return;
+  localStorage.removeItem("ooge_url");
+  localStorage.removeItem("ooge_cache");
+  location.reload();
+}
+
+// Service Worker Registration
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
